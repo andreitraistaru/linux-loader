@@ -201,12 +201,12 @@ unsafe impl ByteValued for bootparam::boot_params {}
 /// # extern crate vm_memory;
 /// # use linux_loader::loader::*;
 /// # use vm_memory::{Bytes, GuestAddress};
-/// use linux_loader::cmdline::UpdateArgs;
+/// use linux_loader::cmdline::{CmdlineArgType, UpdateArgs};
 /// # type GuestMemoryMmap = vm_memory::GuestMemoryMmap<()>;
 /// let mem_size: usize = 0x1000000;
 /// let gm = GuestMemoryMmap::from_ranges(&[(GuestAddress(0x0), mem_size)]).unwrap();
-/// let mut cl = Cmdline::new();
-/// cl.boot_args_mut().insert_string("foo=bar").unwrap();
+/// let mut cl = Cmdline::new(100).unwrap();
+/// cl.insert_string("foo=bar", CmdlineArgType::BootArg).unwrap();
 /// let mut buf = vec![0u8;8];
 /// let result = load_cmdline(&gm, GuestAddress(0x1000), &cl).unwrap();
 /// gm.read_slice(buf.as_mut_slice(), GuestAddress(0x1000)).unwrap();
@@ -244,7 +244,7 @@ pub fn load_cmdline<M: GuestMemory>(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::cmdline::UpdateArgs;
+    use crate::cmdline::CmdlineArgType;
     use vm_memory::{Address, GuestAddress};
 
     type GuestMemoryMmap = vm_memory::GuestMemoryMmap<()>;
@@ -258,8 +258,8 @@ mod tests {
     #[test]
     fn test_cmdline_overflow() {
         let gm = create_guest_mem();
-        let mut cl = Cmdline::new();
-        cl.boot_args_mut().insert_string("12345").unwrap();
+        let mut cl = Cmdline::new(100).unwrap();
+        cl.insert_string("12345", CmdlineArgType::BootArg).unwrap();
 
         let cmdline_address = GuestAddress(u64::MAX - 5);
         assert_eq!(
@@ -285,7 +285,7 @@ mod tests {
         // Fill in guest memory with non zero bytes
         gm.write(sample_buf, cmdline_address).unwrap();
 
-        let mut cl = Cmdline::new();
+        let mut cl = Cmdline::new(10).unwrap();
 
         // Test loading an empty cmdline
         load_cmdline(&gm, cmdline_address, &cl).unwrap();
@@ -293,7 +293,7 @@ mod tests {
         assert_eq!(val, b'\0');
 
         // Test loading an non-empty cmdline
-        cl.boot_args_mut().insert_string("123").unwrap();
+        cl.insert_string("123", CmdlineArgType::BootArg).unwrap();
         load_cmdline(&gm, cmdline_address, &cl).unwrap();
 
         let val: u8 = gm.read_obj(cmdline_address).unwrap();
