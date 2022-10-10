@@ -95,12 +95,12 @@ fn valid_element(s: &str) -> Result<()> {
     }
 }
 
-/// Enum that defines type of arguments accepted by a Cmdline.
+/// Enum that defines type of arguments accepted by a `Cmdline`.
 #[derive(Debug, PartialEq, Eq, Copy, Clone)]
 pub enum CmdlineArgType {
-    /// Boot argument from cmdline.
+    /// Boot argument from `Cmdline`.
     BootArg,
-    /// Init argument from cmdline.
+    /// Init argument from `Cmdline`.
     InitArg,
 }
 
@@ -121,14 +121,14 @@ pub trait UpdateArgs {
     /// Checks is the arguments representation is empty.
     fn is_empty(&self) -> bool;
 
-    /// Validates and appends a string to the current args string.
+    /// Validates and appends a string to the arguments representation.
     ///
     /// # Arguments
     ///
-    /// * `slug` - String to be appended to the args string.
+    /// * `slug` - String to be appended to the arguments representation.
     fn insert_string<T: AsRef<str>>(&mut self, slug: T) -> Result<()>;
 
-    /// Returns the String representation of the arguments struct.
+    /// Returns the String representation of the arguments representation.
     fn as_string(&self) -> String;
 }
 
@@ -257,12 +257,12 @@ impl Cmdline {
     }
 
     /// Tries to set a new capacity of the `Cmdline`. It fails when `new_capacity`
-    /// is smaller than the C complatible representation of the current `Cmdline`
-    /// (which requires to be null terminated)
+    /// is smaller than the size of the C compatible representation of the current
+    /// `Cmdline` (which is null terminated)
     ///
     /// # Arguments
     ///
-    /// * `new_capacity` - New capacity to be set..
+    /// * `new_capacity` - New capacity to be set.
     ///
     /// # Examples
     ///
@@ -284,21 +284,8 @@ impl Cmdline {
         }
     }
 
-    fn get_null_terminated_representation_size(&self) -> usize {
-        // Computing current size of the cmdline
-        let mut cmdline_size = self.boot_args.len() + 1; // for null terminator
-
-        if !self.init_args.is_empty() {
-            cmdline_size += INIT_ARGS_SEPARATOR.len() + self.init_args.len();
-        }
-
-        cmdline_size
-    }
-
     fn has_capacity(&self, more: usize, args_type: CmdlineArgType) -> bool {
         let mut cmdline_size = self.get_null_terminated_representation_size();
-
-        // Adding extra size required for the insertion of `more` bytes as a `args_type` argument
 
         // Checking if one extra space needs to be added before insertion of a new argument
         cmdline_size += match args_type {
@@ -318,9 +305,21 @@ impl Cmdline {
             }
         };
 
+        // Adding extra size required for the insertion of `more` bytes as a `args_type` argument
         cmdline_size += more;
 
         cmdline_size <= self.capacity
+    }
+
+    fn get_null_terminated_representation_size(&self) -> usize {
+        // Computing current size of the cmdline
+        let mut cmdline_size = self.boot_args.len() + 1; // for null terminator
+
+        if !self.init_args.is_empty() {
+            cmdline_size += INIT_ARGS_SEPARATOR.len() + self.init_args.len();
+        }
+
+        cmdline_size
     }
 
     /// Validates and inserts a key=value pair as a new cmdline argument.
